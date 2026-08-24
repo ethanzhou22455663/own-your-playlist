@@ -2,7 +2,7 @@
 // Electron 主进程：负责创建桌面窗口。
 // 这是应用的"后台"，窗口创建后它仍然运行。
 
-import { app, BrowserWindow,ipcMain } from 'electron';
+import { app, BrowserWindow,ipcMain, Menu } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { scanMusicFolder } from './scanner.ts';
@@ -11,10 +11,9 @@ import { scanMusicFolder } from './scanner.ts';
 // __dirname 就是当前文件所在的目录（src/）
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// 注册 'scan-music' 处理器。
-// 当网页请求扫描时，主进程读取 ./music 文件夹，返回歌曲数组。
-ipcMain.handle('scan-music', async () => {
-  const tracks = await scanMusicFolder('./music');
+// handler 接收 folderPath
+ipcMain.handle('scan-music', async (_event, folderPath) => {
+  const tracks = await scanMusicFolder(folderPath);
   return tracks;
 });
 
@@ -33,8 +32,12 @@ ipcMain.handle('scan-music', async () => {
     },
   });
 
- // join(__dirname, '..', 'index.html') 表示：从 src/ 回到上级目录，再找 index.html
-  // Windows 下结果是 D:\leidian\own-your-playlist\index.html
-  mainWindow.loadFile(join(__dirname, '..', 'index.html'));
+  mainWindow.setMenu(null);          // 去掉窗口菜单（Win/Linux）
+  Menu.setApplicationMenu(null);     // 去掉应用菜单（macOS）
+
+  //app.getAppPath() 返回 package.json 所在的目录。
+  // 开发时是项目根目录，打包后是 app.asar 或 resources/app 目录。
+  // 只要打包时把 index.html 和 package.json 放一起，就能找到。
+  mainWindow.loadFile(join(app.getAppPath(), 'index.html'));
 
 })();

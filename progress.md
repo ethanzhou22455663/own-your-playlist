@@ -3,7 +3,7 @@
 > This file lives in the project folder. It is updated by the teaching skill after every meaningful step.
 
 ## Last Updated
-2026-08-24
+2026-08-25
 
 ## Current Project
 Own Your Playlist — a desktop music tag editor. The app lets the user scan a local music folder, select multiple MP3 files, and batch-edit their metadata (title, artist, album, genre, composer) through a graphical interface.
@@ -11,12 +11,12 @@ Own Your Playlist — a desktop music tag editor. The app lets the user scan a l
 Current status: Electron window opens and loads index.html. Minimal ping/pong IPC verified working. Replaced ping with real `scan-music` IPC that calls `scanner.ts` from the main process. Fixed ESM/CommonJS module mismatch by loading `music-metadata` via dynamic `await import()`. Designed a full UI prototype (`prototype.html`) for the batch tag editor: Apple Music-style dark layout, sidebar navigation, multi-select with checkbox/Cmd/Shift/range selection, batch edit slide-over panel, drag-to-reorder, and iterated color scheme to a monochrome/white accent.
 
 ## Where the Next Lesson Starts
-Integrate the `prototype.html` design into the real Electron app and wire up batch editing:
-1. Replace the current `index.html` layout with the prototype's sidebar + tracklist structure.
-2. Render real scanned tracks from `scanMusicFolder('./music')` into the new tracklist.
-3. Add an IPC channel for writing tags back to MP3 files (`write-tags`) using the existing `writer.ts`.
-4. Implement batch metadata editing from the UI: collect selected tracks + changed fields, send to main process, and save.
-5. Preserve multi-select, drag-sort, and batch-edit interactions from the prototype.
+Restore interactions and wire batch editing on top of the real tracklist:
+1. Restore multi-select interactions on real data: checkbox toggle, Ctrl/Cmd single toggle, Shift range selection, and select-all.
+2. Wire the batch-edit slide-over panel so it opens with the currently selected tracks and shows common field values.
+3. Implement a `write-tags` IPC channel that calls the existing `writer.ts` from the main process.
+4. Collect changed fields from the panel, send selected file paths + updates to the main process, and save them back to MP3 files.
+5. Polish: remove the default window menu and consider switching `loadFile` path to `app.getAppPath()` for packaging safety.
 
 Each step must be fully explained and confirmed before moving on.
 
@@ -29,6 +29,13 @@ Each step must be fully explained and confirmed before moving on.
 - Project progress:
 - Needs review:
 -->
+
+### 2026-08-25 · Lesson 7: Integrating prototype UI and rendering real tracks
+- Learned: How to integrate a standalone `prototype.html` design into the real Electron `index.html`; how to pass arguments through IPC (renderer → preload → main process); why `_event` is prefixed with `_` when unused; how to use `folderPath || './music'` for default values; why `filePath` is a good unique ID for scanned tracks; why the `#` column should show list position (`index + 1`) instead of embedded `trackNumber`; how to format `durationSec` into `m:ss` with `padStart`; how to format `genre` arrays with `join` for display; that Electron supports Windows/macOS/Linux but not iOS/iPadOS; how `npm run electron` maps to `electron .`; the difference between `__dirname` (file directory) and `app.getAppPath()` (app root directory).
+- Mastery: can implement with hints / can explain IPC argument flow / can adapt rendering logic / still learning DOM manipulation and CSS layout details.
+- Black-boxed: `music-metadata` internal parsing; `node-id3` ID3 frame encoding; CSS Grid/Flexbox layout engine internals; Electron `contextBridge` implementation details; Electron packaging internals.
+- Project progress: `index.html` now uses the prototype's sidebar + tracklist layout; `scan-music` IPC accepts `folderPath` and returns real scanned tracks; renderer renders real tracks with formatted duration and genre; app verified scanning and displaying `./music` MP3 files.
+- Needs review: IPC argument passing; DOM element creation and `dataset` usage; `join` / `padStart` / `Math.floor` formatting helpers; `__dirname` vs `app.getAppPath()` for production loading; menu removal APIs.
 
 ### 2026-08-24 · Lesson 6: IPC implementation, dynamic imports, and UI prototype
 - Learned: How to implement a minimal ping/pong IPC and verify the button displays "pong"; how to replace ping with a real `scan-music` IPC channel that calls `scanner.ts` from the main process; why `await import("music-metadata")` fixes ESM/CommonJS module mismatch in Electron; how to design a batch tag editor UI with multi-select (checkbox, Ctrl/Cmd, Shift range, select-all), drag-to-reorder, and a slide-over batch edit panel; how to use CSS variables for a design system; how to iterate color scheme based on visual feedback.
@@ -87,3 +94,8 @@ Each step must be fully explained and confirmed before moving on.
 - event listeners and event delegation
 - batch editing logic (only change non-empty fields)
 - integrating prototype HTML into real Electron `index.html`
+- IPC argument passing
+- DOM element creation and `dataset` usage
+- `join` / `padStart` / `Math.floor` formatting helpers
+- `__dirname` vs `app.getAppPath()` for production loading
+- menu removal APIs

@@ -6,5 +6,5 @@ const { contextBridge, ipcRenderer } = require('electron');
 // contextBridge.exposeInMainWorld 把对象挂到网页的 window 上。
 // 网页 JS 可以通过 window.electronAPI.scanMusic() 调用。
 contextBridge.exposeInMainWorld('electronAPI', {
-  scanMusic: () => ipcRenderer.invoke('scan-music'),
+  scanMusic: (folderPath) => ipcRenderer.invoke('scan-music', folderPath),
 });

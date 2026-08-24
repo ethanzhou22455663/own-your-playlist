@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 2026-08-25: Integrating Prototype UI and Rendering Real Tracks</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.7;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      background: #fff;
+    }
+    h1 { font-size: 26px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 20px; margin-top: 32px; color: #111; }
+    h3 { font-size: 16px; margin-top: 24px; color: #333; }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+      font-size: 0.95em;
+    }
+    pre {
+      background: #f8f8f8;
+      padding: 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+      font-size: 0.9em;
+    }
+    ul { padding-left: 22px; }
+    li { margin: 8px 0; }
+    .note {
+      background: #fffbe6;
+      border-left: 4px solid #f0c000;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    .next {
+      background: #f0f8ff;
+      border-left: 4px solid #0066cc;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lesson 2026-08-25: Integrating Prototype UI and Rendering Real Tracks</h1>
+
+  <h2>Goal of the lesson</h2>
+  <p>Move the polished <code>prototype.html</code> design into the real Electron app and render actual scanned MP3 files in the tracklist.</p>
+
+  <h2>What we completed</h2>
+  <ul>
+    <li>Replaced the minimal <code>index.html</code> layout with the full prototype structure: sidebar, toolbar, tracklist table, and batch-edit slide-over panel.</li>
+    <li>Extended the <code>scan-music</code> IPC so it accepts a <code>folderPath</code> argument from the renderer.</li>
+    <li>Updated <code>src/preload.cjs</code> to forward <code>folderPath</code> to the main process.</li>
+    <li>Updated <code>src/electron-main.ts</code> to receive <code>folderPath</code> and fall back to <code>./music</code> when empty.</li>
+    <li>Wrote renderer JavaScript that calls <code>window.electronAPI.scanMusic(folderPath)</code>, stores results in <code>allTracks</code> and <code>tracks</code>, and renders them into <code>#tracklist-body</code>.</li>
+    <li>Verified the app scans <code>./music</code> and displays real songs with title, artist, album, genre, and formatted duration.</li>
+  </ul>
+
+  <h2>What we did not complete</h2>
+  <ul>
+    <li>Multi-select interactions (checkbox, Ctrl/Cmd, Shift range, select-all) are not yet restored on real data.</li>
+    <li>The batch-edit slide-over panel opens but does not save changes back to MP3 files.</li>
+    <li>The <code>write-tags</code> IPC channel is not implemented.</li>
+    <li>Window menu removal and production path handling are noted but not implemented.</li>
+  </ul>
+
+  <h2>Concepts touched</h2>
+  <ul>
+    <li><strong>Prototype integration</strong>: taking a standalone design mock and making it the real application UI.</li>
+    <li><strong>IPC arguments</strong>: data can be passed from renderer → preload → main process through the arguments of <code>ipcRenderer.invoke</code> and <code>ipcMain.handle</code>.</li>
+    <li><strong>Parameter naming</strong>: <code>folderPath</code> is just a chosen name; it must match across preload and main process.</li>
+    <li><strong><code>_event</code></strong>: the first argument to an <code>ipcMain.handle</code> callback is the event object; prefixing with <code>_</code> means "intentionally unused."</li>
+    <li><strong>Default values</strong>: <code>folderPath || './music'</code> uses the provided path, or <code>./music</code> if it is empty.</li>
+    <li><strong>Unique ID</strong>: because scanned tracks have no built-in <code>id</code>, <code>filePath</code> is used as the unique identifier.</li>
+    <li><strong>Row number vs metadata trackNumber</strong>: the <code>#</code> column shows the list position (<code>index + 1</code>) for a clean playlist view; the embedded <code>trackNumber</code> tag is kept for editing.</li>
+    <li><strong>Array formatting</strong>: <code>arr.join(', ')</code> turns <code>['流行', '摇滚']</code> into <code>"流行, 摇滚"</code>.</li>
+    <li><strong>Duration formatting</strong>: <code>Math.floor(seconds / 60)</code> for minutes, <code>seconds % 60</code> for remainder, and <code>padStart(2, '0')</code> for two-digit seconds.</li>
+    <li><strong>Electron cross-platform</strong>: Electron runs on Windows, macOS, and Linux; it does not run on iOS or iPadOS.</li>
+    <li><strong>Menu removal</strong>: <code>mainWindow.setMenu(null)</code> removes the per-window menu on Windows/Linux; <code>Menu.setApplicationMenu(null)</code> removes the app menu on macOS.</li>
+    <li><strong>Path loading</strong>: <code>__dirname</code> is the current file's directory; <code>app.getAppPath()</code> is the application root directory (where <code>package.json</code> lives). The latter is safer for packaged apps.</li>
+  </ul>
+
+  <h2>Key code snippets</h2>
+
+  <h3>1. Forwarding IPC arguments in preload</h3>
+  <pre>// src/preload.cjs
+contextBridge.exposeInMainWorld('electronAPI', {
+  scanMusic: (folderPath) => ipcRenderer.invoke('scan-music', folderPath),
+});</pre>
+
+  <h3>2. Receiving IPC arguments in main process</h3>
+  <pre>// src/electron-main.ts
+ipcMain.handle('scan-music', async (_event, folderPath) => {
+  const target = folderPath || './music';
+  const tracks = await scanMusicFolder(target);
+  return tracks;
+});</pre>
+
+  <h3>3. Rendering real tracks in the table</h3>
+  <pre>// Inside index.html &lt;script&gt;
+let allTracks = [];
+let tracks = [];
+
+function formatDuration(totalSeconds) {
+  if (!totalSeconds || totalSeconds &lt; 0) return '0:00';
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function formatArray(arr) {
+  if (!arr || arr.length === 0) return '';
+  return arr.join(', ');
+}
+
+function renderTracks() {
+  tbody.innerHTML = '';
+  tracks.forEach((track, index) => {
+    const tr = document.createElement('tr');
+    tr.dataset.id = track.filePath;
+    tr.dataset.index = index;
+    tr.innerHTML = `
+      &lt;td&gt;&lt;div class="checkbox"&gt;&lt;/div&gt;&lt;/td&gt;
+      &lt;td class="track-number"&gt;${index + 1}&lt;/td&gt;
+      &lt;td class="track-title"&gt;${track.title}&lt;/td&gt;
+      &lt;td class="track-artist"&gt;${track.artist}&lt;/td&gt;
+      &lt;td&gt;${track.album}&lt;/td&gt;
+      &lt;td&gt;${formatArray(track.genre)}&lt;/td&gt;
+      &lt;td&gt;${formatDuration(track.durationSec)}&lt;/td&gt;
+    `;
+    tbody.appendChild(tr);
+  });
+}</pre>
+
+  <h3>4. Scan button handler</h3>
+  <pre>scanBtn.addEventListener('click', async () => {
+  const folderPath = musicPathInput.value.trim();
+  try {
+    const scanned = await window.electronAPI.scanMusic(folderPath);
+    allTracks = scanned;
+    tracks = allTracks;
+    renderTracks();
+  } catch (err) {
+    console.error('扫描失败', err);
+    alert('扫描失败：' + err.message);
+  }
+});</pre>
+
+  <div class="next">
+    <h2>Where the next lesson starts</h2>
+    <ol>
+      <li>Restore multi-select interactions on real data: checkbox toggle, Ctrl/Cmd single toggle, Shift range selection, and select-all.</li>
+      <li>Wire the batch-edit slide-over panel so it opens with the currently selected tracks.</li>
+      <li>Implement a <code>write-tags</code> IPC channel that calls the existing <code>writer.ts</code>.</li>
+      <li>Collect changed fields from the panel, send selected file paths + updates to the main process, and save them back to MP3 files.</li>
+      <li>Polish: remove the default window menu and consider switching <code>loadFile</code> path to <code>app.getAppPath()</code> for packaging safety.</li>
+    </ol>
+    <p>Each step must be tiny, fully explained, and confirmed before moving on.</p>
+  </div>
+
+  <footer style="margin-top: 40px; color: #666; font-size: 0.9em;">
+    Generated on 2026-08-25 for the Own Your Playlist project.
+  </footer>
+</body>
+</html>
