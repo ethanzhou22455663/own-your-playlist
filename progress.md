@@ -6,16 +6,17 @@
 2026-08-24
 
 ## Current Project
-Own Your Playlist — a desktop music tag editor. The app will let the user select local MP3 files and batch-edit their album, genre, or composer tags through a graphical interface.
+Own Your Playlist — a desktop music tag editor. The app lets the user scan a local music folder, select multiple MP3 files, and batch-edit their metadata (title, artist, album, genre, composer) through a graphical interface.
 
-Current status: Electron window now opens and loads index.html. IPC (Inter-Process Communication) concept introduced to connect renderer UI with main process. Ping/pong example explained but not yet fully implemented/verified. Next lesson will review JavaScript basics before continuing IPC.
+Current status: Electron window opens and loads index.html. Minimal ping/pong IPC verified working. Replaced ping with real `scan-music` IPC that calls `scanner.ts` from the main process. Fixed ESM/CommonJS module mismatch by loading `music-metadata` via dynamic `await import()`. Designed a full UI prototype (`prototype.html`) for the batch tag editor: Apple Music-style dark layout, sidebar navigation, multi-select with checkbox/Cmd/Shift/range selection, batch edit slide-over panel, drag-to-reorder, and iterated color scheme to a monochrome/white accent.
 
 ## Where the Next Lesson Starts
-Review JavaScript fundamentals and complete the first IPC example:
-1. Re-explain objects, properties, functions, and destructuring with simple non-Electron examples.
-2. Re-explain IPC architecture: main process vs renderer process vs preload bridge.
-3. Implement the minimal ping/pong IPC and confirm the button displays "pong".
-4. Only then replace ping with actual music folder scanning.
+Integrate the `prototype.html` design into the real Electron app and wire up batch editing:
+1. Replace the current `index.html` layout with the prototype's sidebar + tracklist structure.
+2. Render real scanned tracks from `scanMusicFolder('./music')` into the new tracklist.
+3. Add an IPC channel for writing tags back to MP3 files (`write-tags`) using the existing `writer.ts`.
+4. Implement batch metadata editing from the UI: collect selected tracks + changed fields, send to main process, and save.
+5. Preserve multi-select, drag-sort, and batch-edit interactions from the prototype.
 
 Each step must be fully explained and confirmed before moving on.
 
@@ -28,6 +29,13 @@ Each step must be fully explained and confirmed before moving on.
 - Project progress:
 - Needs review:
 -->
+
+### 2026-08-24 · Lesson 6: IPC implementation, dynamic imports, and UI prototype
+- Learned: How to implement a minimal ping/pong IPC and verify the button displays "pong"; how to replace ping with a real `scan-music` IPC channel that calls `scanner.ts` from the main process; why `await import("music-metadata")` fixes ESM/CommonJS module mismatch in Electron; how to design a batch tag editor UI with multi-select (checkbox, Ctrl/Cmd, Shift range, select-all), drag-to-reorder, and a slide-over batch edit panel; how to use CSS variables for a design system; how to iterate color scheme based on visual feedback.
+- Mastery: can read it / can implement IPC with hints / can copy and adapt CSS layouts / still learning CSS from scratch.
+- Black-boxed: `music-metadata` internal parsing; `node-id3` ID3 frame encoding; CSS Grid/Flexbox layout engine internals; HTML5 drag-and-drop API internals; Electron `contextBridge` implementation details.
+- Project progress: `scan-music` IPC works end-to-end; `prototype.html` created as a standalone Apple Music-style batch tag editor mock with white/monochrome accent; color scheme finalized by the student to white/gray accent.
+- Needs review: dynamic imports vs static imports; CSS variables and selectors; event listeners and event delegation; batch editing logic (only change non-empty fields); integrating prototype HTML into real Electron `index.html`.
 
 ### 2026-08-24 · Lesson 5: Electron window, page loading, and IPC introduction
 - Learned: How to create an Electron bridge file (electron-main.cjs) so Electron can load TypeScript; how to open a BrowserWindow from the main process; how to load an index.html file into the window; the difference between URL and file path on Windows; the architecture of IPC (main process, renderer process, preload script); the roles of contextBridge, ipcRenderer, and ipcMain; JavaScript fundamentals including require vs import, objects/properties/functions, and destructuring.
@@ -74,3 +82,8 @@ Each step must be fully explained and confirmed before moving on.
 - `type TagUpdate` usage
 - benefits of helper functions for reducing duplication
 - edge cases in command-line argument parsing
+- dynamic imports vs static imports
+- CSS variables and selectors
+- event listeners and event delegation
+- batch editing logic (only change non-empty fields)
+- integrating prototype HTML into real Electron `index.html`

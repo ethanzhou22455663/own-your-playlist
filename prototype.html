@@ -194,6 +194,9 @@
     .header-meta {
       color: var(--text-secondary);
       font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
     }
 
     /* 工具栏 */
@@ -213,24 +216,35 @@
       gap: var(--space-md);
     }
 
+    /* 工具栏内紧挨着的元素组，用于缩小"未选择"和"编辑"按钮之间的间距 */
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;  /* 未选择和编辑按钮之间的间距 */
+    }
+
     .selection-info {
       color: var(--text-secondary);
       font-size: 13px;
-      min-width: 120px;
+      width: auto;         /* 随文字内容宽度变化 */
+      flex-shrink: 0;      /* 在 flex 容器里不被压缩 */
+      white-space: nowrap; /* 文字不换行 */
     }
 
     .btn {
-      padding: 7px 14px;
+      padding: 5px 12px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border);
       background: var(--bg-tertiary);
       color: var(--text-primary);
       font-size: 13px;
       font-weight: 500;
+      line-height: 1;          /* 让文字行高和字号一致，避免撑高按钮 */
       cursor: pointer;
       transition: all 0.12s ease;
       display: inline-flex;
       align-items: center;
+      justify-content: center; /* 文字在按钮内水平居中 */
       gap: 6px;
     }
 
@@ -253,6 +267,60 @@
     .btn-primary:hover {
       background: var(--accent-hover);
       border-color: var(--accent-hover);
+    }
+
+    /* 歌曲搜索框：下划线细线样式，宽度贴合内容 */
+    .search-input {
+      padding: 6px 0;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      line-height: 1;
+      width: auto;           /* 宽度由 size 属性和内容决定 */
+      transition: border-color 0.12s ease;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-bottom-color: var(--accent);
+      background: transparent;
+    }
+
+    /* 路径输入框：下划线细线样式，宽度贴合内容 */
+    .path-input {
+      padding: 6px 0;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-family: inherit;
+      line-height: 1;
+      width: auto;           /* 宽度由 size 属性和内容决定 */
+      transition: border-color 0.12s ease;
+    }
+
+    .path-input:focus {
+      outline: none;
+      border-bottom-color: var(--accent);
+      color: var(--text-primary);
+      background: transparent;
+    }
+
+    /* 统一按钮和输入框的高度，避免视觉不齐 */
+    .btn,
+    .search-input,
+    .path-input {
+      height: 28px;
     }
 
     /* =========================================================
@@ -577,10 +645,6 @@
       <nav class="nav-section">
         <div class="nav-section-title">管理</div>
         <div class="nav-item">
-          <span class="icon">🔍</span>
-          <span>扫描文件夹</span>
-        </div>
-        <div class="nav-item">
           <span class="icon">⚙️</span>
           <span>设置</span>
         </div>
@@ -592,7 +656,9 @@
       <div class="main-scroll">
         <header class="header">
           <h1 class="header-title">歌曲</h1>
-          <div class="header-meta">3 首歌曲 · 按专辑排序</div>
+          <div class="header-meta">
+            <span id="song-count">3 首歌曲</span>
+          </div>
         </header>
 
         <div class="toolbar">
@@ -601,11 +667,17 @@
               <span class="checkbox" id="select-all-box"></span>
               <span>全选</span>
             </button>
-            <span class="selection-info" id="selection-info">未选择</span>
+            <div class="toolbar-group">
+              <span class="selection-info" id="selection-info">未选择</span>
+              <button class="btn" id="edit-btn" disabled>编辑</button>
+            </div>
           </div>
           <div class="toolbar-right">
-            <button class="btn" id="scan-btn">🔍 扫描文件夹</button>
-            <button class="btn btn-primary" id="edit-btn" disabled>✎ 编辑选中项</button>
+            <input type="text" id="search-input" class="search-input" placeholder="搜索歌曲、歌手、专辑..." size="22">
+            <button class="btn" id="search-btn">搜索</button>
+            <input type="text" id="music-path" class="path-input" value="./music" title="音乐文件夹路径" size="9">
+            <button class="btn" id="browse-path-btn">浏览…</button>
+            <button class="btn" id="scan-btn">扫描文件夹</button>
           </div>
         </div>
 
@@ -669,12 +741,15 @@
   </aside>
 
   <script>
-    // 假数据
-    let tracks = [
+    // 假数据：所有歌曲的原始数据
+    const allTracks = [
       { id: '1', title: '晴天', artist: '周杰伦', album: '叶惠美', duration: '4:29', genre: '流行', composer: '周杰伦' },
       { id: '2', title: '七里香', artist: '周杰伦', album: '七里香', duration: '4:59', genre: '流行', composer: '周杰伦' },
       { id: '3', title: 'Bohemian Rhapsody', artist: 'Queen', album: 'A Night at the Opera', duration: '5:55', genre: '摇滚', composer: 'Freddie Mercury' }
     ];
+
+    // tracks 是当前正在显示的数据（可能被搜索过滤过）
+    let tracks = allTracks;
 
     const tbody = document.getElementById('tracklist-body');
     const editPanel = document.getElementById('edit-panel');
@@ -685,6 +760,11 @@
     const selectionInfo = document.getElementById('selection-info');
     const editBtn = document.getElementById('edit-btn');
     const saveBtn = document.getElementById('save-btn');
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+    const musicPathInput = document.getElementById('music-path');
+    const browsePathBtn = document.getElementById('browse-path-btn');
+    const songCount = document.getElementById('song-count');
 
     let selectedIds = new Set();
     let lastSelectedIndex = -1;
@@ -800,15 +880,18 @@
       if (count === 0) {
         selectionInfo.textContent = '未选择';
         editBtn.disabled = true;
+        editBtn.classList.remove('btn-primary');  // 禁用时不高亮
       } else if (count === 1) {
         selectionInfo.textContent = '已选择 1 首';
         editBtn.disabled = false;
-        editBtn.textContent = '✎ 编辑';
+        editBtn.classList.add('btn-primary');     // 可用时高亮
       } else {
         selectionInfo.textContent = `已选择 ${count} 首`;
         editBtn.disabled = false;
-        editBtn.textContent = `✎ 编辑 ${count} 首`;
+        editBtn.classList.add('btn-primary');     // 可用时高亮
       }
+      // 编辑按钮文字保持"编辑"不变
+      editBtn.textContent = '编辑';
 
       // 更新行样式
       document.querySelectorAll('.tracklist tbody tr').forEach(tr => {
@@ -900,12 +983,50 @@
       closeEditPanel();
     });
 
-    // 扫描按钮（演示用：随机改变一首歌曲的专辑名）
+    // 扫描按钮（演示用：实际项目中会读取 musicPathInput.value 文件夹）
     document.getElementById('scan-btn').addEventListener('click', () => {
-      alert('扫描功能演示：实际项目中会读取 ./music 文件夹');
+      alert(`扫描功能演示：实际项目中会读取 ${musicPathInput.value} 文件夹`);
     });
 
+    // 歌曲搜索：根据输入内容过滤 tracks，然后重新渲染
+    function applySearch() {
+      const term = searchInput.value.toLowerCase().trim();
+      if (term === '') {
+        tracks = allTracks;
+        // 没有搜索词时，搜索按钮不高亮
+        searchBtn.classList.remove('btn-primary');
+      } else {
+        tracks = allTracks.filter(t =>
+          t.title.toLowerCase().includes(term) ||
+          t.artist.toLowerCase().includes(term) ||
+          t.album.toLowerCase().includes(term)
+        );
+        // 有搜索词时，搜索按钮高亮，样式和编辑按钮一致
+        searchBtn.classList.add('btn-primary');
+      }
+      // 搜索变化时清空选择，避免选中项不在当前列表里造成困惑
+      selectedIds.clear();
+      lastSelectedIndex = -1;
+      updateSelectionUI();
+      updateSongCount();
+      renderTracks();
+    }
+
+    searchInput.addEventListener('input', applySearch);
+    searchBtn.addEventListener('click', applySearch);
+
+    // 路径选择按钮：目前只是占位，后续接入 Electron 的 dialog.showOpenDialog
+    browsePathBtn.addEventListener('click', () => {
+      alert('路径选择功能待接入 Electron 对话框');
+    });
+
+    // 更新歌曲数量显示
+    function updateSongCount() {
+      songCount.textContent = `${tracks.length} 首歌曲`;
+    }
+
     renderTracks();
+    updateSongCount();
   </script>
 </body>
 </html>
