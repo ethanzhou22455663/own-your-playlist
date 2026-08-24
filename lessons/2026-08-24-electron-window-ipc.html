@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 2026-08-24: Electron Window, Page Loading, and IPC Introduction</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.7;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      background: #fff;
+    }
+    h1 { font-size: 26px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 20px; margin-top: 32px; color: #111; }
+    h3 { font-size: 16px; margin-top: 24px; color: #333; }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+      font-size: 0.95em;
+    }
+    pre {
+      background: #f8f8f8;
+      padding: 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+      font-size: 0.9em;
+    }
+    ul { padding-left: 22px; }
+    li { margin: 8px 0; }
+    .note {
+      background: #fffbe6;
+      border-left: 4px solid #f0c000;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    .next {
+      background: #f0f8ff;
+      border-left: 4px solid #0066cc;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lesson 2026-08-24: Electron Window, Page Loading, and IPC Introduction</h1>
+
+  <h2>Goal of the lesson</h2>
+  <p>Get the smallest possible Electron desktop window running and introduce the IPC pattern that will let the UI ask the main process to scan local music files.</p>
+
+  <h2>What we completed</h2>
+  <ul>
+    <li>Created <code>src/electron-main.cjs</code>, the bridge that lets Electron load TypeScript through tsx.</li>
+    <li>Created <code>src/electron-main.ts</code> to open a BrowserWindow.</li>
+    <li>Solved an Electron binary download issue caused by a corrupted npm cache by manually downloading and extracting the Electron distribution.</li>
+    <li>Created <code>index.html</code> and loaded it into the Electron window.</li>
+    <li>Learned the difference between URL and file path on Windows, and why <code>new URL(...).pathname</code> produced a duplicated drive letter.</li>
+    <li>Introduced the IPC architecture: main process, renderer process, and preload script as a secure bridge.</li>
+  </ul>
+
+  <h2>What we did not complete</h2>
+  <ul>
+    <li>The minimal ping/pong IPC example was explained but not verified working.</li>
+    <li>JavaScript fundamentals (objects, properties, functions, destructuring, require vs import) need more review.</li>
+    <li>The app does not yet scan or display music files through the GUI.</li>
+  </ul>
+
+  <h2>Concepts touched</h2>
+  <ul>
+    <li><strong>Electron bridge file</strong>: a <code>.cjs</code> file that registers the tsx loader so Electron can run TypeScript code.</li>
+    <li><strong>BrowserWindow</strong>: the Electron API that creates a desktop window.</li>
+    <li><strong>loadFile</strong>: how the main process tells a window which local HTML page to display.</li>
+    <li><strong>URL vs path</strong>: a URL is a universal resource address; a path is a local file-system address. On Windows, converting between them needs care.</li>
+    <li><strong>Main process</strong>: the Node.js process that starts first and can access files.</li>
+    <li><strong>Renderer process</strong>: the web page inside the window; it cannot access files directly.</li>
+    <li><strong>IPC (Inter-Process Communication)</strong>: the message-passing system between main and renderer processes.</li>
+    <li><strong>preload script</strong>: a small script loaded before the page, used to safely expose main-process capabilities to the renderer.</li>
+    <li><strong>contextBridge</strong>: an Electron API that creates a safe, limited bridge between Node/Electron and the web page.</li>
+    <li><strong>ipcRenderer</strong>: the renderer-side tool for sending IPC messages.</li>
+    <li><strong>ipcMain</strong>: the main-process tool for receiving IPC messages.</li>
+    <li><strong>require vs import</strong>: two ways to load modules; <code>require</code> is used in CommonJS (<code>.cjs</code>), <code>import</code> is used in ES modules/TypeScript.</li>
+    <li><strong>Destructuring</strong>: the <code>const { a, b } = object</code> syntax that pulls properties out of an object into standalone variables.</li>
+  </ul>
+
+  <div class="next">
+    <h2>Where the next lesson starts</h2>
+    <ol>
+      <li>Review JavaScript fundamentals: objects, properties, functions, and destructuring.</li>
+      <li>Re-explain the IPC architecture using the restaurant analogy.</li>
+      <li>Implement and verify the minimal ping/pong IPC example.</li>
+      <li>Only then replace ping with real music-folder scanning.</li>
+    </ol>
+    <p>Each step must be tiny, fully explained, and confirmed before moving on.</p>
+  </div>
+
+  <footer style="margin-top: 40px; color: #666; font-size: 0.9em;">
+    Generated on 2026-08-24 for the Own Your Playlist project.
+  </footer>
+</body>
+</html>

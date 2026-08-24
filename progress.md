@@ -3,19 +3,19 @@
 > This file lives in the project folder. It is updated by the teaching skill after every meaningful step.
 
 ## Last Updated
-2026-08-23
+2026-08-24
 
 ## Current Project
 Own Your Playlist — a desktop music tag editor. The app will let the user select local MP3 files and batch-edit their album, genre, or composer tags through a graphical interface.
 
-Current status: project direction pivoted from CLI/web server to Electron desktop app. Electron is installed. `src/scanner.ts` now reads the `composer` field. The Electron entry files and UI have not been created yet.
+Current status: Electron window now opens and loads index.html. IPC (Inter-Process Communication) concept introduced to connect renderer UI with main process. Ping/pong example explained but not yet fully implemented/verified. Next lesson will review JavaScript basics before continuing IPC.
 
 ## Where the Next Lesson Starts
-Build the smallest possible Electron app, one tiny step at a time:
-1. Create `src/electron-main.cjs`, the two-line bridge that lets Electron load TypeScript.
-2. Create the smallest `src/main.ts` that opens an empty window.
-3. Run `npm run electron` and confirm a window appears.
-4. Only then create `index.html` and load it into the window.
+Review JavaScript fundamentals and complete the first IPC example:
+1. Re-explain objects, properties, functions, and destructuring with simple non-Electron examples.
+2. Re-explain IPC architecture: main process vs renderer process vs preload bridge.
+3. Implement the minimal ping/pong IPC and confirm the button displays "pong".
+4. Only then replace ping with actual music folder scanning.
 
 Each step must be fully explained and confirmed before moving on.
 
@@ -28,6 +28,13 @@ Each step must be fully explained and confirmed before moving on.
 - Project progress:
 - Needs review:
 -->
+
+### 2026-08-24 · Lesson 5: Electron window, page loading, and IPC introduction
+- Learned: How to create an Electron bridge file (electron-main.cjs) so Electron can load TypeScript; how to open a BrowserWindow from the main process; how to load an index.html file into the window; the difference between URL and file path on Windows; the architecture of IPC (main process, renderer process, preload script); the roles of contextBridge, ipcRenderer, and ipcMain; JavaScript fundamentals including require vs import, objects/properties/functions, and destructuring.
+- Mastery: can read it / can describe the architecture / still learning JavaScript syntax fundamentals.
+- Black-boxed: tsx loader internals; Electron binary download internals; contextBridge implementation details; extract-zip internals.
+- Project progress: src/electron-main.cjs and src/electron-main.ts created; window opens and loads index.html; IPC ping/pong concept explained but not yet verified working.
+- Needs review: JavaScript objects/properties/functions; destructuring syntax; require vs import; async/await; IPC main/renderer/preload flow.
 
 ### 2026-08-23 · Lesson 4: Electron desktop GUI planning and setup
 - Learned: The difference between CLI, web server, and desktop app architectures; why a browser page cannot write local files; what Electron is and why it fits a local music editor; how npm scripts and devDependencies work; how to use an npm mirror when a package download fails.
@@ -52,12 +59,18 @@ Each step must be fully explained and confirmed before moving on.
 
 ## Review List
 <!-- Aggregate "needs review" items from all log blocks -->
+- JavaScript objects/properties/functions
+- Destructuring syntax
+- require vs import
 - async/await flow
+- IPC main/renderer/preload flow
+- contextBridge / ipcRenderer / ipcMain roles
+- fileURLToPath and Windows path handling
+- Electron main process vs renderer process
+- npm scripts and devDependencies
+- CommonJS vs ES modules
 - sort comparator return values
 - `metadata.common` vs `metadata.format` responsibilities
 - `type TagUpdate` usage
 - benefits of helper functions for reducing duplication
 - edge cases in command-line argument parsing
-- Electron main process vs renderer process
-- npm scripts and devDependencies
-- CommonJS vs ES modules (only if needed for the bridge file)
