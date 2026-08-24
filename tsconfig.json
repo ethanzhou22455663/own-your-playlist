@@ -1,0 +1,16 @@
+{
+  // TypeScript 的"检查规则说明书"
+  // 注意:Node 跑 TS 用不上它(直接脱掉类型跑),它是给类型检查器 tsc 和编辑器看的
+  "compilerOptions": {
+    "target": "es2023",                    // 目标 JS 版本(现代即可)
+    "module": "nodenext",                  // 用 Node 官方的现代模块规则
+    "moduleResolution": "nodenext",        // 和上一条配套,让 import 可以带 .ts 后缀
+    "strict": true,                        // 总闸:打开全部严格检查(新项目一律开)
+    "noEmit": true,                        // 只检查,不生成 JS 文件(我们用 Node 直接跑)
+    "allowImportingTsExtensions": true,    // 允许 import "./models.ts" 这种写法
+    "verbatimModuleSyntax": true,          // 强制 import type 写清楚(形状导入必须标 type)
+    "skipLibCheck": true,                // 不检查第三方库内部(它们自己会管)
+    "types": ["node"]                    // 显式声明:允许识别 node: 开头的内置模块(@types/node 的说明书)
+  },
+  "include": ["src"]                       // 检查范围:src 文件夹
+}

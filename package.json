@@ -1,0 +1,22 @@
+{
+  "name": "own-your-playlist",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/electron-main.cjs",
+  "scripts": {
+    "start": "node src/main.ts",
+    "check": "tsc --noEmit",
+    "electron": "electron ."
+  },
+  "dependencies": {
+    "music-metadata": "^10.7.0",
+    "node-id3": "^0.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "electron": "^33.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^7.0.2"
+  }
+}
