@@ -7,5 +7,18 @@
 <body>
   <h1>Hello, Electron!</h1>
   <p>这是我的音乐标签编辑器。</p>
+ <button id="pingBtn">点我发送 ping</button>
+  <p id="result">结果会显示在这里</p>
+  
+    <script>
+    // 页面加载完后，给按钮绑定点击事件。
+    document.getElementById('pingBtn').addEventListener('click', async () => {
+      // 调用 preload 暴露的接口，等待主进程回应。
+      const response = await window.electronAPI.ping();
+      // 把回应显示在页面上。
+      document.getElementById('result').textContent = response;
+    });
+  </script>
+  
 </body>
 </html>
