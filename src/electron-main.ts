@@ -5,21 +5,23 @@
 import { app, BrowserWindow,ipcMain } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { scanMusicFolder } from './scanner.ts';
 
 // ES Module 里没有 Node 传统的 __dirname，这两行手动算出来。
 // __dirname 就是当前文件所在的目录（src/）
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// 注册 'scan-music' 处理器。
+// 当网页请求扫描时，主进程读取 ./music 文件夹，返回歌曲数组。
+ipcMain.handle('scan-music', async () => {
+  const tracks = await scanMusicFolder('./music');
+  return tracks;
+});
+
 // 等 Electron 初始化完成后再创建窗口。
 // 用 async IIFE（立即执行的异步函数）是因为主进程里不能直接顶层写 await。
 (async () => {
   await app.whenReady();
-
-  // 注册 IPC 处理器。
-// 当渲染进程发来 'ping' 请求时，返回 'pong'。
-ipcMain.handle('ping', () => {
-  return 'pong';
-});
 
   // 打开一个 800x600 的窗口。
   const mainWindow = new BrowserWindow({

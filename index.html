@@ -5,18 +5,30 @@
   <title>Own Your Playlist</title>
 </head>
 <body>
-  <h1>Hello, Electron!</h1>
-  <p>这是我的音乐标签编辑器。</p>
- <button id="pingBtn">点我发送 ping</button>
-  <p id="result">结果会显示在这里</p>
+<h1>Own Your Playlist</h1>
+  <button id="scanBtn">扫描音乐文件夹</button>
+  <div id="result">点击按钮开始扫描</div>
   
     <script>
-    // 页面加载完后，给按钮绑定点击事件。
-    document.getElementById('pingBtn').addEventListener('click', async () => {
+      // 页面加载完后，给按钮绑定点击事件。
+      document.getElementById('scanBtn').addEventListener('click', async () => {
       // 调用 preload 暴露的接口，等待主进程回应。
-      const response = await window.electronAPI.ping();
-      // 把回应显示在页面上。
-      document.getElementById('result').textContent = response;
+      const tracks = await window.electronAPI.scanMusic();
+     
+      // 如果没有找到歌曲，给出提示。
+      if (tracks.length === 0) {
+        document.getElementById('result').textContent = '没有找到 MP3 文件';
+        return;
+      }
+
+    // output 只是一个字符串变量，名字随便取。
+    // 我们用 += 把每一首歌的信息加进去。
+     let output = `共找到 ${tracks.length} 首歌：<br>`;
+    for (const track of tracks) {
+    output += track.title + '<br>';
+    }
+    document.getElementById('result').innerHTML = output;
+
     });
   </script>
   

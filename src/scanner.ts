@@ -29,6 +29,10 @@ export interface MusicFile {
 // 扫描指定文件夹，返回里面所有支持的音频文件。
 // Promise<MusicFile[]> 表示：这个函数是异步的，最后给你一个 MusicFile 数组。
 export async function scanMusicFolder(folderPath: string): Promise<MusicFile[]> {
+  
+  // 在函数运行时动态加载 music-metadata，让它保持 ESM 原样。
+  const { parseFile } = await import("music-metadata");
+  
   // readdir 的 { withFileTypes: true } 让我们拿到每个条目是文件还是文件夹。
   const entries = await readdir(folderPath, { withFileTypes: true });
   const tracks: MusicFile[] = [];
@@ -67,12 +71,5 @@ export async function scanMusicFolder(folderPath: string): Promise<MusicFile[]> 
     });
   }
 
-  // 排序：先按 album 名字母顺序分组，同一 album 内按 trackNumber 从小到大排。
-  // 这样打印出来就像一张专辑的歌单顺序。
-  return tracks.sort((a, b) => {
-    if (a.album !== b.album) {
-      return a.album.localeCompare(b.album);
-    }
-    return a.trackNumber - b.trackNumber;
-  });
+  return tracks;
 }
