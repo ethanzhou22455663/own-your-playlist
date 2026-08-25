@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-08-25 课程笔记：连接保存功能与前端选择</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-elevated: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --code-bg: #1f2937;
+      --success: #3fb950;
+      --warn: #d29922;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .date {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 17px;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+
+    p {
+      margin: 12px 0;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+      margin: 12px 0;
+    }
+
+    li {
+      margin: 8px 0;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background: var(--code-bg);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid var(--border);
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+
+    .highlight {
+      background: rgba(88, 166, 255, 0.1);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }
+
+    .warn {
+      background: rgba(210, 153, 34, 0.1);
+      border-left-color: var(--warn);
+    }
+
+    .success {
+      background: rgba(63, 185, 80, 0.1);
+      border-left-color: var(--success);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-elevated);
+      font-weight: 600;
+    }
+
+    .footer {
+      margin-top: 60px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>课程笔记：连接保存功能与前端选择</h1>
+    <div class="date">2026-08-25 · Own Your Playlist 项目</div>
+
+    <h2>本节课目标</h2>
+    <p>让 Electron 桌面应用能够：</p>
+    <ol>
+      <li>通过 IPC 把用户在网页端修改的歌曲标签写回 MP3 文件。</li>
+      <li>在前端用勾选框选择歌曲，并打开编辑面板进行编辑。</li>
+    </ol>
+
+    <h2>1. 新增 save-tags IPC 通道</h2>
+
+    <h3>数据流</h3>
+    <pre><code>网页 JS → preload.cjs → electron-main.ts → writer.ts → MP3 文件</code></pre>
+
+    <h3>preload.cjs：暴露安全接口</h3>
+    <pre><code>contextBridge.exposeInMainWorld('electronAPI', {
+  scanMusic: (folderPath) => ipcRenderer.invoke('scan-music', folderPath),
+  saveTags: (filePath, tags) => ipcRenderer.invoke('save-tags', filePath, tags),
+});</code></pre>
+
+    <h3>electron-main.ts：注册处理器</h3>
+    <pre><code>ipcMain.handle('save-tags', async (_event, filePath, tags) => {
+  if (typeof filePath !== 'string') {
+    throw new Error('filePath 必须是字符串');
+  }
+  if (typeof tags !== 'object' || tags === null) {
+    throw new Error('tags 必须是对象');
+  }
+
+  const raw = tags as Record&lt;string, unknown&gt;;
+  const update: TagUpdate = {};
+
+  if (typeof raw.title === 'string') update.title = raw.title;
+  if (typeof raw.artist === 'string') update.artist = raw.artist;
+  if (typeof raw.album === 'string') update.album = raw.album;
+  if (typeof raw.trackNumber === 'string') update.trackNumber = raw.trackNumber;
+  if (typeof raw.genre === 'string') update.genre = raw.genre;
+  if (typeof raw.composer === 'string') update.composer = raw.composer;
+
+  await writeTags(filePath, update);
+  return { success: true };
+});</code></pre>
+
+    <div class="highlight">
+      <strong>要点：</strong>IPC 收到的数据类型是 <code>unknown</code>，主进程要先检查再使用，不能直接信任网页传来的内容。
+    </div>
+
+    <h2>2. 给歌曲生成稳定 ID</h2>
+
+    <p>之前用 <code>track.filePath</code> 当 DOM 的 <code>data-id</code>，但 Windows 路径里有 <code>\</code>，会导致 CSS 选择器匹配失败。</p>
+
+    <p>解决方案：在 <code>scanner.ts</code> 里给每首歌生成 UUID。</p>
+
+    <pre><code>import { randomUUID } from 'node:crypto';
+
+export interface MusicFile {
+  id: string;        // 新增
+  filePath: string;
+  title: string;
+  // ...
+}
+
+// 创建 track 时
+tracks.push({
+  id: randomUUID(),
+  filePath,
+  title: metadata.common.title ?? entry.name,
+  // ...
+});</code></pre>
+
+    <div class="highlight success">
+      <strong>结果：</strong>前端统一用 <code>track.id</code> 来识别歌曲，不再依赖文件路径。
+    </div>
+
+    <h2>3. 前端选择逻辑</h2>
+
+    <h3>核心数据结构</h3>
+    <pre><code>let selectedTracks = [];  // 存放被选中的 MusicFile 对象</code></pre>
+
+    <h3>切换选中状态</h3>
+    <pre><code>function toggleSelection(track) {
+  const index = selectedTracks.findIndex(t => t.id === track.id);
+
+  if (index >= 0) {
+    selectedTracks.splice(index, 1);  // 取消选中
+  } else {
+    selectedTracks.push(track);        // 选中
+  }
+
+  renderTracks();  // 整体重绘
+}</code></pre>
+
+    <h3>渲染时根据选中状态生成 checkbox</h3>
+    <pre><code>const isSelected = selectedTracks.some(t => t.id === track.id);
+
+tr.innerHTML = `
+  &lt;td&gt;&lt;div class="checkbox ${isSelected ? 'checked' : ''}"&gt;${isSelected ? '✓' : ''}&lt;/div&gt;&lt;/td&gt;
+  ...
+`;</code></pre>
+
+    <div class="highlight warn">
+      <strong>注意：</strong>事件监听器要绑在 checkbox 上，并调用 <code>e.stopPropagation()</code>，防止触发整行点击。
+    </div>
+
+    <h2>4. 渲染策略：整体重绘</h2>
+
+    <table>
+      <tr>
+        <th>策略</th>
+        <th>优点</th>
+        <th>缺点</th>
+      </tr>
+      <tr>
+        <td>局部更新</td>
+        <td>性能高</td>
+        <td>逻辑分散，不同操作要维护多套规则</td>
+      </tr>
+      <tr>
+        <td>整体重绘</td>
+        <td>逻辑统一，代码简单</td>
+        <td>数据量大时性能差</td>
+      </tr>
+    </table>
+
+    <p>本项目歌曲数量不多，选择<strong>整体重绘</strong>。勾选、搜索、拖拽排序、保存后刷新都可以统一走 <code>renderTracks()</code>。</p>
+
+    <h2>5. 连接编辑面板</h2>
+
+    <h3>打开面板并填充数据</h3>
+    <pre><code>function openEditPanel() {
+  if (selectedTracks.length === 0) return;
+
+  const track = selectedTracks[0];
+
+  panelTitle.textContent = track.title;
+  panelSubtitle.textContent = `${track.artist} · ${track.album}`;
+
+  editTitle.value = track.title;
+  editArtist.value = track.artist;
+  editAlbum.value = track.album;
+  editGenre.value = track.genre.join(', ');
+  editComposer.value = track.composer.join(', ');
+
+  editPanel.classList.add('open');
+  overlay.classList.add('show');
+}</code></pre>
+
+    <h3>保存并刷新</h3>
+    <pre><code>saveBtn.addEventListener('click', async () => {
+  const track = selectedTracks[0];
+
+  const tags = {
+    title: editTitle.value,
+    artist: editArtist.value,
+    album: editAlbum.value,
+    genre: editGenre.value,
+    composer: editComposer.value,
+  };
+
+  await window.electronAPI.saveTags(track.filePath, tags);
+
+  // 重新扫描，刷新表格
+  const scanned = await window.electronAPI.scanMusic(musicPathInput.value.trim());
+  allTracks = scanned;
+  tracks = allTracks;
+  selectedTracks = [];
+  renderTracks();
+});</code></pre>
+
+    <h2>6. 关键概念复习</h2>
+
+    <h3>函数作用域</h3>
+    <p>函数能访问哪些变量，由它在<strong>哪里定义</strong>决定，不是由在哪里调用决定。</p>
+
+    <pre><code>function outer() {
+  const x = 1;
+
+  function inner() {
+    console.log(x);  // ✅ 可以访问，因为 inner 在 outer 里定义
+  }
+
+  inner();
+}
+
+function another() {
+  inner();  // ❌ 这里调用 inner，inner 也访问不到 another 里的变量
+}</code></pre>
+
+    <h3>some / findIndex / splice</h3>
+    <ul>
+      <li><code>some()</code>：检查数组里有没有满足条件的元素，返回 <code>true</code> / <code>false</code>。</li>
+      <li><code>findIndex()</code>：找到满足条件的元素的索引，找不到返回 <code>-1</code>。</li>
+      <li><code>splice(index, 1)</code>：从数组的 <code>index</code> 位置删除 1 个元素。</li>
+    </ul>
+
+    <h3>模板字符串与三元运算符</h3>
+    <pre><code>const isSelected = true;
+
+const className = isSelected ? 'checked' : '';  // 'checked'
+const icon = isSelected ? '✓' : '';              // '✓'
+
+const html = `&lt;div class="checkbox ${className}"&gt;${icon}&lt;/div&gt;`;
+// 结果：&lt;div class="checkbox checked"&gt;✓&lt;/div&gt;</code></pre>
+
+    <h2>7. 下节课可选方向</h2>
+
+    <ol>
+      <li><strong>文件夹选择对话框</strong>：给"浏览…"按钮接入 Electron 的 <code>dialog.showOpenDialog</code>。</li>
+      <li><strong>批量编辑</strong>：选中多首歌时，保存同时修改所有选中文件。</li>
+      <li><strong>搜索过滤</strong>：把 <code>prototype.html</code> 的搜索逻辑搬到 <code>index.html</code>。</li>
+      <li><strong>代码拆分</strong>：把 <code>index.html</code> 的内联脚本拆成 <code>src/renderer.ts</code> 模块。</li>
+    </ol>
+
+    <div class="footer">
+      本节课结束。下节课可以从上面四个方向中任选一个继续。
+    </div>
+  </div>
+</body>
+</html>
