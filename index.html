@@ -748,6 +748,17 @@
   const musicPathInput = document.getElementById('music-path');
   const editBtn = document.getElementById('edit-btn');
   const selectionInfo = document.getElementById('selection-info');
+  const editPanel = document.getElementById('edit-panel');
+  const overlay = document.getElementById('overlay');
+  const closeBtn = document.getElementById('edit-panel-close');
+  const saveBtn = document.getElementById('save-btn');
+  const panelTitle = document.getElementById('panel-title');
+  const panelSubtitle = document.getElementById('panel-subtitle');
+  const editTitle = document.getElementById('edit-title');
+  const editArtist = document.getElementById('edit-artist');
+  const editAlbum = document.getElementById('edit-album');
+  const editGenre = document.getElementById('edit-genre');
+  const editComposer = document.getElementById('edit-composer');
 
   // ========== 2. 数据仓库 ==========
   // allTracks：扫描得到的完整歌曲列表（搜索时的“总仓库”）
@@ -844,6 +855,35 @@ function updateToolbar() {
   editBtn.disabled = selectedTracks.length === 0;
 }
 
+// 打开右侧编辑面板
+function openEditPanel() {
+  if (selectedTracks.length === 0) return;
+
+  const track = selectedTracks[0];
+   // 面板标题显示歌名，副标题显示歌手和专辑
+  panelTitle.textContent = track.title;
+  panelSubtitle.textContent = `${track.artist} · ${track.album}`;
+
+  // 把当前 metadata 填入输入框
+  editTitle.value = track.title;
+  editArtist.value = track.artist;
+  editAlbum.value = track.album;
+  editGenre.value = track.genre.join(', ');
+  editComposer.value = track.composer.join(', ');
+
+  // 显示面板和遮罩
+  editPanel.classList.add('open');
+  overlay.classList.add('show');
+}
+
+// 关闭右侧编辑面板
+function closeEditPanel() {
+  editPanel.classList.remove('open');
+  overlay.classList.remove('show');
+}
+
+
+
     // ========== 5. 扫描按钮 ==========
     scanBtn.addEventListener('click', async () => {
     const folderPath = musicPathInput.value.trim();
@@ -863,6 +903,44 @@ function updateToolbar() {
       alert('扫描失败：' + err.message);
     }
   });
+
+  // 保存按钮：把输入框内容写回 MP3 文件
+saveBtn.addEventListener('click', async () => {
+  if (selectedTracks.length === 0) return;
+
+  const track = selectedTracks[0];
+
+  // 收集所有输入框的值
+  // 空字符串也会传过去，表示清空这个 tag
+  const tags = {
+    title: editTitle.value,
+    artist: editArtist.value,
+    album: editAlbum.value,
+    genre: editGenre.value,
+    composer: editComposer.value,
+  };
+
+  try {
+    await window.electronAPI.saveTags(track.filePath, tags);
+
+    closeEditPanel();
+
+    // 重新扫描，显示最新数据
+    const folderPath = musicPathInput.value.trim();
+    const scanned = await window.electronAPI.scanMusic(folderPath);
+    allTracks = scanned;
+    tracks = allTracks;
+    selectedTracks = [];
+    renderTracks();
+  } catch (err) {
+    console.error('保存失败', err);
+    alert('保存失败：' + err.message);
+  }
+});
+
+editBtn.addEventListener('click', openEditPanel);
+closeBtn.addEventListener('click', closeEditPanel);
+overlay.addEventListener('click', closeEditPanel);
 
 
   </script>
