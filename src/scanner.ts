@@ -5,6 +5,7 @@
 import { readdir } from "node:fs/promises";
 import { join, extname } from "node:path";
 import { parseFile } from "music-metadata";
+import { randomUUID } from 'node:crypto';
 
 // 第一步只支持 MP3。
 // 后续加 FLAC / M4A 时，只需要在这里加扩展名、并在写入时换对应的库。
@@ -14,6 +15,7 @@ const SUPPORTED_EXTENSIONS = new Set([".mp3"]);
 // 注意：filePath 只在本机使用，用来打开文件；
 // title / artist / album / trackNumber / genre 才是会从文件里读出来的 metadata。
 export interface MusicFile {
+  id:string;  //唯一标识
   filePath: string;
   title: string;
   artist: string;
@@ -55,6 +57,7 @@ export async function scanMusicFolder(folderPath: string): Promise<MusicFile[]> 
     const metadata = await parseFile(filePath);
 
     tracks.push({
+      id: randomUUID(),   // 比如 "a1b2c3d4-e5f6-..."
       filePath,
       // ?? 是"空值合并运算符"：如果左边是 null 或 undefined，就用右边的默认值。
       // 如果文件没写 title，就用文件名兜底，至少知道是什么。

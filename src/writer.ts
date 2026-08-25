@@ -12,6 +12,9 @@ export interface TagUpdate {
   // node-id3 要求 trackNumber 是字符串，比如 "1" 或 "1/10"。
   trackNumber?: string;
   genre?: string;
+  // composer 对应 ID3 的 TCOM 帧。
+  // 前端只提供一个输入框，所以这里用单个字符串；后续想支持多作曲家可以改成 string[]。
+  composer?: string;
 }
 
 export async function writeTags(filePath: string, tags: TagUpdate): Promise<void> {

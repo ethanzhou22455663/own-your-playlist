@@ -746,12 +746,16 @@
   const songCount = document.getElementById('song-count');
   const scanBtn = document.getElementById('scan-btn');
   const musicPathInput = document.getElementById('music-path');
+  const editBtn = document.getElementById('edit-btn');
+  const selectionInfo = document.getElementById('selection-info');
 
   // ========== 2. 数据仓库 ==========
   // allTracks：扫描得到的完整歌曲列表（搜索时的“总仓库”）
   // tracks：当前页面上显示的歌曲列表（可能被搜索过滤）
   let allTracks = [];
   let tracks = [];
+  // ========== 选中状态 ==========
+  let selectedTracks = [];  // 当前被选中的歌曲对象
 
   // ========== 3. 小工具函数 ==========
 
@@ -781,15 +785,15 @@
       // 创建一行
       const tr = document.createElement('tr');
 
-      // 用文件路径当唯一 ID，因为真实歌曲没有 "id" 字段
-      tr.dataset.id = track.filePath;
+      tr.dataset.id = track.id;
       tr.dataset.index = index;
 
       // 序号用列表里的位置 + 1
       const number = index + 1;
+      const isSelected = selectedTracks.some(t => t.id === track.id);
 
       tr.innerHTML = `
-        <td><div class="checkbox"></div></td>
+        <td><div class="checkbox ${isSelected ? 'checked' : ''}">${isSelected ? '✓' : ''}</div></td>
         <td class="track-number">${number}</td>
         <td class="track-title">${track.title}</td>
         <td class="track-artist">${track.artist}</td>
@@ -798,16 +802,47 @@
         <td>${formatDuration(track.durationSec)}</td>
       `;
 
+    // 勾选框点击时切换选中状态
+    const checkbox = tr.querySelector('.checkbox');
+    if (checkbox) {
+    checkbox.addEventListener('click', (e) => {
+    e.stopPropagation();  // 阻止事件冒泡到行
+    toggleSelection(track);
+    });
+    }
+
       tbody.appendChild(tr);
     });
 
-    updateSongCount();
+    updateToolbar();
   }
 
-  // 更新“3 首歌曲”这个提示文字
-  function updateSongCount() {
-    songCount.textContent = `${tracks.length} 首歌曲`;
+
+  // 切换一首歌的选中状态
+function toggleSelection(track) {
+  const index = selectedTracks.findIndex(t => t.id === track.id);
+
+  if (index >= 0) {
+    // 已经在数组里，移除（取消选中）
+    selectedTracks.splice(index, 1);
+  } else {
+    // 不在数组里，加入（选中）
+    selectedTracks.push(track);
   }
+
+  renderTracks();
+}
+
+function updateToolbar() {
+  if (selectedTracks.length > 0) {
+    selectionInfo.textContent = `已选择 ${selectedTracks.length} 首`;
+  } else {
+    selectionInfo.textContent = '未选择';
+  }
+
+  songCount.textContent = `${tracks.length} 首歌曲`;
+  editBtn.disabled = selectedTracks.length === 0;
+}
 
     // ========== 5. 扫描按钮 ==========
     scanBtn.addEventListener('click', async () => {
@@ -820,6 +855,7 @@
       // 原始结果放进总仓库，也作为当前显示列表
       allTracks = scanned;
       tracks = allTracks;
+      selectedTracks = [];   //重新扫描后清空选择
 
       renderTracks();
     } catch (err) {
