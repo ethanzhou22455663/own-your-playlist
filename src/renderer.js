@@ -17,11 +17,13 @@
   const editGenre = document.getElementById('edit-genre');
   const editComposer = document.getElementById('edit-composer');
   const browsePathBtn = document.getElementById('browse-path-btn');
+  const selectAllBox = document.getElementById('select-all-box');
+
 
   // ========== 2. 数据仓库 ==========
   // allTracks：扫描得到的完整歌曲列表（搜索时的“总仓库”）
-  // tracks：当前页面上显示的歌曲列表（可能被搜索过滤）
   let allTracks = [];
+  // tracks：当前页面上显示的歌曲列表（可能被搜索过滤）
   let tracks = [];
   // ========== 选中状态 ==========
   let selectedTracks = [];  // 当前被选中的歌曲对象
@@ -71,6 +73,12 @@
         <td>${formatDuration(track.durationSec)}</td>
       `;
 
+
+    // 点击整行也切换选中
+    tr.addEventListener('click', () => {
+    handleRowClick(track);
+    });
+
     // 勾选框点击时切换选中状态
     const checkbox = tr.querySelector('.checkbox');
     if (checkbox) {
@@ -102,6 +110,21 @@ function toggleSelection(track) {
   renderTracks();
 }
 
+
+// 全选 / 取消全选
+function toggleSelectAll() {
+  if (selectedTracks.length === tracks.length && tracks.length > 0) {
+    // 如果已经全选，就清空
+    selectedTracks = [];
+  } else {
+    // 否则选中当前显示的所有歌曲
+    selectedTracks = [...tracks];
+  }
+  renderTracks();
+}
+
+
+
 function updateToolbar() {
   if (selectedTracks.length > 0) {
     selectionInfo.textContent = `已选择 ${selectedTracks.length} 首`;
@@ -111,6 +134,11 @@ function updateToolbar() {
 
   songCount.textContent = `${tracks.length} 首歌曲`;
   editBtn.disabled = selectedTracks.length === 0;
+
+   // 更新全选框状态
+  const allSelected = tracks.length > 0 && selectedTracks.length === tracks.length;
+  selectAllBox.classList.toggle('checked', allSelected);
+  selectAllBox.textContent = allSelected ? '✓' : '';
 }
 
 // 打开右侧编辑面板
@@ -208,3 +236,5 @@ browsePathBtn.addEventListener('click', async () => {
 editBtn.addEventListener('click', openEditPanel);
 closeBtn.addEventListener('click', closeEditPanel);
 overlay.addEventListener('click', closeEditPanel);
+selectAllBox.addEventListener('click', toggleSelectAll);
+
