@@ -27,6 +27,8 @@
   let tracks = [];
   // ========== 选中状态 ==========
   let selectedTracks = [];  // 当前被选中的歌曲对象
+  // 记录用户编辑过的字段
+  const editedFields = new Set();
 
   // ========== 3. 小工具函数 ==========
 
@@ -76,7 +78,7 @@
 
     // 点击整行也切换选中
     tr.addEventListener('click', () => {
-    handleRowClick(track);
+    toggleSelection(track);
     });
 
     // 勾选框点击时切换选中状态
@@ -145,22 +147,68 @@ function updateToolbar() {
 function openEditPanel() {
   if (selectedTracks.length === 0) return;
 
-  const track = selectedTracks[0];
-   // 面板标题显示歌名，副标题显示歌手和专辑
-  panelTitle.textContent = track.title;
-  panelSubtitle.textContent = `${track.artist} · ${track.album}`;
+  // 每次打开面板时清空编辑记录
+  editedFields.clear();
 
-  // 把当前 metadata 填入输入框
-  editTitle.value = track.title;
-  editArtist.value = track.artist;
-  editAlbum.value = track.album;
-  editGenre.value = track.genre.join(', ');
-  editComposer.value = track.composer.join(', ');
+  if (selectedTracks.length === 1) {
+    const track = selectedTracks[0];
+     // 面板标题显示歌名，副标题显示歌手和专辑
+    panelTitle.textContent = track.title;
+    panelSubtitle.textContent = `${track.artist} · ${track.album}`;
+    editTitle.value = track.title;
+    editArtist.value = track.artist;
+    editAlbum.value = track.album;
+    editGenre.value = track.genre.join(', ');
+    editComposer.value = track.composer.join(', ');
+  } else {
+    panelTitle.textContent = `编辑 ${selectedTracks.length} 首歌曲`;
+    panelSubtitle.textContent = '批量编辑：已修改的字段会应用到所有选中歌曲';
+    setEditField(editTitle, getCommonString(selectedTracks, 'title'));
+    setEditField(editArtist, getCommonString(selectedTracks, 'artist'));
+    setEditField(editAlbum, getCommonString(selectedTracks, 'album'));
+    setEditField(editGenre, getCommonArray(selectedTracks, 'genre'));
+    setEditField(editComposer, getCommonArray(selectedTracks, 'composer'));
+  }
 
   // 显示面板和遮罩
   editPanel.classList.add('open');
   overlay.classList.add('show');
 }
+
+// 辅助：设置输入框值和 placeholder
+function setEditField(input, commonValue) {
+  if (commonValue === '') {
+    // 共同值为空（包括"值不同"的情况）：placeholder 提示多个值
+    input.value = '';
+    input.placeholder = '多个值';
+  } else {
+    input.value = commonValue;
+    input.placeholder = '';
+  }
+}
+
+
+
+
+
+function getCommonString(tracks, field) {
+  if (tracks.length === 0) return '';
+  const first = tracks[0][field];
+  const allSame = tracks.every(t => t[field] === first);
+  return allSame ? first : '';
+}
+
+function getCommonArray(tracks, field) {
+  if (tracks.length === 0) return '';
+  const first = tracks[0][field].join(', ');
+  const allSame = tracks.every(t => t[field].join(', ') === first);
+  return allSame ? first : '';
+}
+
+
+
+
+
 
 // 关闭右侧编辑面板
 function closeEditPanel() {
@@ -196,20 +244,27 @@ saveBtn.addEventListener('click', async () => {
 
   const track = selectedTracks[0];
 
-  // 收集所有输入框的值
-  // 空字符串也会传过去，表示清空这个 tag
-  const tags = {
-    title: editTitle.value,
-    artist: editArtist.value,
-    album: editAlbum.value,
-    genre: editGenre.value,
-    composer: editComposer.value,
-  };
+  // 只收集用户编辑过的字段
+  const tags = {};
+  if (editedFields.has('title')) tags.title = editTitle.value;
+  if (editedFields.has('artist')) tags.artist = editArtist.value;
+  if (editedFields.has('album')) tags.album = editAlbum.value;
+  if (editedFields.has('genre')) tags.genre = editGenre.value;
+  if (editedFields.has('composer')) tags.composer = editComposer.value;
+
+    if (Object.keys(tags).length === 0) {
+    closeEditPanel();
+    return; // 什么都没改，直接关闭
+  }
 
   try {
-    await window.electronAPI.saveTags(track.filePath, tags);
+    // 逐个保存到所有选中歌曲
+    for (const track of selectedTracks) {
+      await window.electronAPI.saveTags(track.filePath, tags);
+    }
 
     closeEditPanel();
+    editedFields.clear();
 
     // 重新扫描，显示最新数据
     const folderPath = musicPathInput.value.trim();
@@ -237,4 +292,13 @@ editBtn.addEventListener('click', openEditPanel);
 closeBtn.addEventListener('click', closeEditPanel);
 overlay.addEventListener('click', closeEditPanel);
 selectAllBox.addEventListener('click', toggleSelectAll);
+
+// 记录用户在编辑面板里动过哪些字段
+// 只有这些字段才会被保存
+editTitle.addEventListener('input', () => editedFields.add('title'));
+editArtist.addEventListener('input', () => editedFields.add('artist'));
+editAlbum.addEventListener('input', () => editedFields.add('album'));
+editGenre.addEventListener('input', () => editedFields.add('genre'));
+editComposer.addEventListener('input', () => editedFields.add('composer'));
+
 
