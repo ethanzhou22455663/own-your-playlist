@@ -16,6 +16,7 @@
   const editAlbum = document.getElementById('edit-album');
   const editGenre = document.getElementById('edit-genre');
   const editComposer = document.getElementById('edit-composer');
+  const browsePathBtn = document.getElementById('browse-path-btn');
 
   // ========== 2. 数据仓库 ==========
   // allTracks：扫描得到的完整歌曲列表（搜索时的“总仓库”）
@@ -194,6 +195,15 @@ saveBtn.addEventListener('click', async () => {
     alert('保存失败：' + err.message);
   }
 });
+
+browsePathBtn.addEventListener('click', async () => {
+  const folderPath = await window.electronAPI.selectFolder();
+  if (folderPath) {
+    musicPathInput.value = folderPath;
+    scanBtn.click(); // 自动触发扫描
+  }
+});
+
 
 editBtn.addEventListener('click', openEditPanel);
 closeBtn.addEventListener('click', closeEditPanel);

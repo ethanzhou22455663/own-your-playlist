@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 新增：saveTags 会把文件路径和标签对象发送到主进程。
   // 它返回一个 Promise，主进程保存成功后 resolve，失败则 reject。
   saveTags: (filePath, tags) => ipcRenderer.invoke('save-tags', filePath, tags),
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
 });

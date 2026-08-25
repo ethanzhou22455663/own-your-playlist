@@ -2,7 +2,7 @@
 // 注册所有 IPC 处理器。
 // 主进程只需要在启动早期调用 registerIpcHandlers() 即可。
 
-import { ipcMain } from 'electron';
+import { ipcMain, dialog } from 'electron';
 import { scanMusicFolder } from './scanner.ts';
 import { writeTags, type TagUpdate } from './writer.ts';
 
@@ -12,6 +12,7 @@ ipcMain.handle('scan-music', async (_event, folderPath) => {
   const tracks = await scanMusicFolder(folderPath);
   return tracks;
 });
+
 
 // 新增：处理保存标签请求。
 // 参数：
@@ -47,5 +48,16 @@ ipcMain.handle('save-tags', async (_event, filePath: unknown, tags: unknown) => 
   // 返回一个简单结果对象，网页可以据此提示"保存成功"。
   return { success: true };
 });   
+
+
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+  });
+  if (result.canceled) {
+    return null;
+  }
+  return result.filePaths[0];
+});
 
  }
