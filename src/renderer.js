@@ -25,6 +25,7 @@
   const albumListView = document.getElementById('album-list-view');
   const albumlistBody = document.getElementById('albumlist-body');
   const albumCount = document.getElementById('album-count');
+  const headerTitle = document.querySelector('.header-title');
 
   // ========== 2. 数据仓库 ==========
   // allTracks：扫描得到的完整歌曲列表（搜索时的“总仓库”）
@@ -154,12 +155,47 @@ function renderAlbums() {
       </td>
     `;
 
+     // 点击整行进入该专辑的歌曲列表
+    tr.addEventListener('click', () => {
+    showAlbumSongs(album.name);
+    });
+
+    // 点击操作按钮区域时，阻止事件冒泡到整行
+    // 这样以后绑定重命名/删除按钮时不会误触发进入专辑
+    const actionsTd = tr.querySelector('td:last-child');
+    actionsTd.addEventListener('click', (e) => {
+    e.stopPropagation();
+    });
+
     albumlistBody.appendChild(tr);
   }
 
   // 更新顶部"X 张专辑"
   albumCount.textContent = `${albums.length} 张专辑`;
 }
+
+
+
+
+// 点击专辑后：显示该专辑的歌曲，但 sidebar 仍停留在"专辑"
+function showAlbumSongs(albumName) {
+  // 过滤出该专辑的歌曲
+  tracks = allTracks.filter(t => (t.album || '未知专辑') === albumName);
+
+  // 隐藏专辑列表页，露出下面的歌曲页
+  // 注意：这里不调用 switchView('songs')，所以 sidebar 的高亮不变
+  albumListView.classList.remove('active');
+
+  // 改标题
+  headerTitle.textContent = albumName === '未知专辑' ? '未知专辑' : `专辑：${albumName}`;
+
+  // 清空选中
+  selectedTracks = [];
+
+  // 渲染过滤后的歌曲
+  renderTracks();
+}
+
 
 
 
@@ -321,7 +357,6 @@ function closeEditPanel() {
       allTracks = scanned;
       tracks = allTracks;
       selectedTracks = [];   //重新扫描后清空选择
-
       renderTracks();
     } catch (err) {
       console.error('扫描失败', err);
@@ -391,6 +426,11 @@ function switchView(view) {
       albumListView.classList.remove('active');
       navSongs.classList.add('active');
       navAlbums.classList.remove('active');
+      headerTitle.textContent = '歌曲';
+      tracks = allTracks;
+      selectedTracks = [];
+      renderTracks();
+
       break;
   }
 }
