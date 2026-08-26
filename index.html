@@ -615,6 +615,173 @@
       opacity: 1;
       pointer-events: auto;
     }
+
+    /* =========================================================
+       专辑列表页
+       ========================================================= */
+    .album-list-view {
+      display: none;              /* 默认隐藏 */
+      position: absolute;         /* 覆盖在主内容上方 */
+      inset: 0;
+      background: var(--bg-primary);
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .album-list-view.active {
+      display: flex;
+    }
+
+    .album-list-view .header {
+      padding-top: var(--space-3xl);
+    }
+
+    .albumlist-container {
+      flex: 1;
+      overflow: auto;
+    }
+
+    .albumlist {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .albumlist th {
+      text-align: left;
+      padding: 10px var(--space-sm);
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg-primary);
+      z-index: 5;
+      white-space: nowrap;
+    }
+
+    .albumlist th:first-child {
+      padding-left: var(--space-2xl);
+    }
+
+    .albumlist th:last-child {
+      width: 160px;
+      padding-right: var(--space-lg);
+      text-align: center;
+    }
+
+    .albumlist td {
+      padding: 9px var(--space-sm);
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.1s ease;
+    }
+
+    .albumlist td:first-child {
+      padding-left: var(--space-2xl);
+    }
+
+    .albumlist td:last-child {
+      padding-right: var(--space-lg);
+      text-align: center;
+    }
+
+    .albumlist tbody tr {
+      cursor: default;
+      transition: background 0.1s ease;
+    }
+
+    .albumlist tbody tr:hover {
+      background: var(--hover);
+    }
+
+    .albumlist .album-name {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .albumlist .album-count {
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 专辑操作按钮组 */
+    .album-actions {
+      display: flex;
+      gap: var(--space-sm);
+      justify-content: center;
+    }
+
+    .album-actions .btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      height: 24px;
+    }
+
+    /* =========================================================
+       确认对话框
+       ========================================================= */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .confirm-overlay.active {
+      display: flex;
+    }
+
+    .confirm-dialog {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl);
+      width: 360px;
+      max-width: 90vw;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .confirm-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .confirm-message {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+    }
+
+    .btn-danger {
+      background: #ff453a;
+      border-color: #ff453a;
+      color: #ffffff;
+    }
+
+    .btn-danger:hover {
+      background: #ff5f55;
+      border-color: #ff5f55;
+    }
   </style>
 </head>
 <body>
@@ -639,6 +806,10 @@
         <div class="nav-item">
           <span class="icon">🎤</span>
           <span>歌手</span>
+        </div>
+        <div class="nav-item">
+          <span class="icon">🎸</span>
+          <span>风格</span>
         </div>
       </nav>
 
@@ -698,7 +869,63 @@
           </table>
         </div>
       </div>
+
+      <!-- 专辑列表页：默认隐藏，点击侧边栏“专辑”后显示 -->
+      <section class="album-list-view" id="album-list-view">
+        <div class="main-scroll">
+          <header class="header">
+            <h1 class="header-title">专辑</h1>
+            <div class="header-meta">
+              <span id="album-count">0 张专辑</span>
+            </div>
+          </header>
+
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <button class="btn btn-primary" id="album-create-btn">新建</button>
+              <input type="text" id="album-search-input" class="search-input" placeholder="搜索专辑..." size="22">
+              <button class="btn" id="album-search-btn">搜索</button>
+            </div>
+          </div>
+
+          <div class="albumlist-container">
+            <table class="albumlist">
+              <thead>
+                <tr>
+                  <th>专辑名</th>
+                  <th>歌曲数</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="albumlist-body">
+                <tr>
+                  <td class="album-name">示例专辑</td>
+                  <td class="album-count">12 首</td>
+                  <td>
+                    <div class="album-actions">
+                      <button class="btn">重命名</button>
+                      <button class="btn">删除</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
+  </div>
+
+  <!-- 删除确认对话框 -->
+  <div class="confirm-overlay" id="delete-confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-title">删除专辑？</div>
+      <div class="confirm-message">此操作不可撤销，专辑中的歌曲不会被删除，但专辑字段将被清空。</div>
+      <div class="confirm-actions">
+        <button class="btn" id="delete-cancel-btn">取消</button>
+        <button class="btn btn-danger" id="delete-confirm-btn">删除</button>
+      </div>
+    </div>
   </div>
 
   <!-- 遮罩 -->
@@ -742,6 +969,39 @@
   
 <script src="src/renderer.js"></script>
 
-  
+<script>
+  // =========================================================
+  // 控制台入口：打开专辑列表页 / 删除确认对话框
+  // 用法：showAlbumList()
+  //       hideAlbumList()
+  //       showDeleteConfirm()
+  //       hideDeleteConfirm()
+  // TODO: 接入侧边栏点击后删除此入口
+  // =========================================================
+  window.showAlbumList = function() {
+    document.getElementById('album-list-view').classList.add('active');
+  };
+
+  window.hideAlbumList = function() {
+    document.getElementById('album-list-view').classList.remove('active');
+  };
+
+  window.showDeleteConfirm = function() {
+    document.getElementById('delete-confirm-overlay').classList.add('active');
+  };
+
+  window.hideDeleteConfirm = function() {
+    document.getElementById('delete-confirm-overlay').classList.remove('active');
+  };
+
+  // 对话框按钮：取消关闭，确定先打印日志再关闭（后续接真正删除逻辑）
+  document.getElementById('delete-cancel-btn').addEventListener('click', window.hideDeleteConfirm);
+  document.getElementById('delete-confirm-btn').addEventListener('click', () => {
+    console.log('确认删除专辑');
+    window.hideDeleteConfirm();
+  });
+</script>
+
+
 </body>
 </html>
