@@ -38,6 +38,8 @@ let selectedTracks = [];  // 当前被选中的歌曲对象
 const editedFields = new Set();
 // 当前歌曲列表的用途：all=全部歌曲, album=专辑内歌曲, artist=歌手歌曲, composer=作曲家歌曲
 let currentSongListMode = 'all';
+// 记录被拖拽的歌曲
+let draggedTrack = null;
 
 
 // ========== 3. 小工具函数 ==========
@@ -236,13 +238,16 @@ function renderTracks() {
     if (currentSongListMode === 'album') {
       tr.setAttribute('draggable', 'true');
       tr.style.cursor = 'grab';
-    }
+
 
     // 开始拖拽
-    tr.addEventListener('dragstart', () => {
-      draggedTrack = track;        // 记录被拖的是哪首歌
-      tr.style.opacity = '0.5';    // 变半透明
-    });
+ tr.addEventListener('dragstart', (e) => {
+  draggedTrack = track;
+  tr.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', track.id);
+});
+
 
     // 拖拽结束（无论有没有放下都会触发）
     tr.addEventListener('dragend', () => {
@@ -256,7 +261,7 @@ function renderTracks() {
     });
 
     // 放下时重新排序
-    tr.addEventListener('drop', (e) => {
+    tr.addEventListener('drop', async (e) => {
       e.preventDefault();
 
       // 没有拖拽对象，或者拖到自己身上，什么都不做
@@ -274,12 +279,22 @@ function renderTracks() {
       // 插入到目标位置
       tracks.splice(toIndex, 0, moved);
 
-      // 重新渲染
+
+      // 保存新顺序到文件
+      await saveTrackOrder();
+
+      // 重新扫描，保持当前专辑视图
+      const folderPath = musicPathInput.value.trim();
+      const scanned = await window.electronAPI.scanMusic(folderPath);
+      allTracks = scanned;
+
+      // 用当前这行所在专辑名重新过滤
+      const albumName = track.album || '未知专辑';
+      tracks = allTracks.filter(t => (t.album || '未知专辑') === albumName);
       selectedTracks = [];
       renderTracks();
     });
-
-    
+    }
 
 
 
@@ -302,6 +317,24 @@ function renderTracks() {
 
   updateToolbar();
 }
+
+
+
+// 把当前 tracks 数组的顺序保存为每首歌的 trackNumber
+async function saveTrackOrder() {
+  try {
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      await window.electronAPI.saveTags(track.filePath, {
+        trackNumber: String(i + 1)
+      });
+    }
+  } catch (err) {
+    console.error('保存排序失败', err);
+    alert('保存排序失败：' + err.message);
+  }
+}
+
 
 
 // 切换一首歌的选中状态

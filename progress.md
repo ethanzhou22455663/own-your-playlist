@@ -8,15 +8,13 @@
 ## Current Project
 Own Your Playlist — a desktop music tag editor. The app lets the user scan a local music folder, select multiple MP3 files, and batch-edit their metadata (title, artist, album, genre, composer) through a graphical interface.
 
-Current status: Electron window opens and loads index.html. Minimal ping/pong IPC verified working. Replaced ping with real `scan-music` IPC that calls `scanner.ts` from the main process. Fixed ESM/CommonJS module mismatch by loading `music-metadata` via dynamic `await import()`. Designed a full UI prototype (`prototype.html`) for the batch tag editor: Apple Music-style dark layout, sidebar navigation, multi-select with checkbox/Cmd/Shift/range selection, batch edit slide-over panel, drag-to-reorder, and iterated color scheme to a monochrome/white accent.
+Current status: Electron window opens and loads index.html. Minimal ping/pong IPC verified working. Replaced ping with real `scan-music` IPC that calls `scanner.ts` from the main process. Fixed ESM/CommonJS module mismatch by loading `music-metadata` via dynamic `await import()`. Designed a full UI prototype (`prototype.html`) for the batch tag editor: Apple Music-style dark layout, sidebar navigation, multi-select with checkbox/Cmd/Shift/range selection, batch edit slide-over panel, drag-to-reorder, and iterated color scheme to a monochrome/white accent. Sidebar now switches between Songs and Albums views; album list renders real data; clicking an album shows its songs in the reused song table; drag-to-reorder in album view persists trackNumber to MP3 files.
 
 ## Where the Next Lesson Starts
-Restore interactions and wire batch editing on top of the real tracklist:
-1. Restore multi-select interactions on real data: checkbox toggle, Ctrl/Cmd single toggle, Shift range selection, and select-all.
-2. Wire the batch-edit slide-over panel so it opens with the currently selected tracks and shows common field values.
-3. Implement a `write-tags` IPC channel that calls the existing `writer.ts` from the main process.
-4. Collect changed fields from the panel, send selected file paths + updates to the main process, and save them back to MP3 files.
-5. Polish: remove the default window menu and consider switching `loadFile` path to `app.getAppPath()` for packaging safety.
+1. Polish the album-song detail view: add a "back to album list" button and refine the click-vs-drag interaction so dragging a row does not also toggle its selection.
+2. Clean up event listeners on re-render to avoid accumulating duplicate listeners.
+3. Consider extracting the drag-and-drop logic into a helper so it can be reused for playlist-style ordering elsewhere.
+4. Implement album rename/delete actions, or move on to the Artist/Genre views using the same view-mode pattern.
 
 Each step must be fully explained and confirmed before moving on.
 
@@ -29,6 +27,13 @@ Each step must be fully explained and confirmed before moving on.
 - Project progress:
 - Needs review:
 -->
+
+### 2026-08-26 · Lesson 9: Album navigation, album list rendering, and drag-to-reorder inside albums
+- Learned: How to switch views from the sidebar using `switch` and CSS classes; how to derive an album list from a track array by grouping on the `album` field; how to reuse the existing song table as a detail view for a single album; how to keep the sidebar highlight on "专辑" while logically showing the song table; how to use a `currentSongListMode` state to enable features only in specific views; how HTML5 drag-and-drop works (`dragstart`, `dragover`, `drop`, `dragend`) and why `e.preventDefault()` is required on `dragover`/`drop`; the difference between `for` and `forEach` when awaiting inside the loop; how to save the reordered track numbers back to MP3 files via `window.electronAPI.saveTags` and then re-scan to keep memory in sync.
+- Mastery: can implement with hints / can adapt existing functions / still learning drag-and-drop edge cases and event order.
+- Black-boxed: `node-id3` internal trackNumber frame encoding; precise HTML5 DnD coordinate calculations; Chromium/Electron DnD quirks.
+- Project progress: `index.html` sidebar navigation switches between Songs and Albums; album list renders real album names and song counts; clicking an album filters `tracks` and displays the album's songs in the reused song table; drag-to-reorder is enabled only in album view and persists the new order as `trackNumber` in each MP3 file; `currentSongListMode` distinguishes "all songs" from "album songs".
+- Needs review: `e.preventDefault()` vs `e.stopPropagation()`; async `for` vs `forEach`; cleaning up event listeners on re-render; handling click-vs-drag ambiguity; when to re-scan vs when to update `allTracks` in memory.
 
 ### 2026-08-26 · Lesson 8: Album list view and delete confirmation dialog
 - Learned: How to add a second full-page view inside the same `index.html` using `display: none` / `display: flex` and an `.active` class; how to overlay a view on top of the main content with `position: absolute; inset: 0`; how to build a simple list table with per-row action buttons (rename / delete); how to create a confirmation dialog with an overlay, title, message, and cancel/confirm buttons; how to expose console-only entry points (`showAlbumList`, `hideAlbumList`, `showDeleteConfirm`, `hideDeleteConfirm`) for temporary testing; how to align table columns with header/toolbar padding using CSS variables.
@@ -106,3 +111,8 @@ Each step must be fully explained and confirmed before moving on.
 - `join` / `padStart` / `Math.floor` formatting helpers
 - `__dirname` vs `app.getAppPath()` for production loading
 - menu removal APIs
+- `e.preventDefault()` vs `e.stopPropagation()`
+- async `for` vs `forEach`
+- cleaning up event listeners on re-render
+- handling click-vs-drag ambiguity
+- when to re-scan vs when to update `allTracks` in memory
