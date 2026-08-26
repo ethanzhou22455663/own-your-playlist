@@ -18,6 +18,8 @@
   const editComposer = document.getElementById('edit-composer');
   const browsePathBtn = document.getElementById('browse-path-btn');
   const selectAllBox = document.getElementById('select-all-box');
+  const searchInput = document.getElementById('search-input');
+  const searchBtn = document.getElementById('search-btn');
 
 
   // ========== 2. 数据仓库 ==========
@@ -48,6 +50,42 @@
     if (!arr || arr.length === 0) return '';
     return arr.join(', ');
   }
+
+  
+function getCommonString(tracks, field) {
+  if (tracks.length === 0) return '';
+  const first = tracks[0][field];
+  const allSame = tracks.every(t => t[field] === first);
+  return allSame ? first : '';
+}
+
+function getCommonArray(tracks, field) {
+  if (tracks.length === 0) return '';
+  const first = tracks[0][field].join(', ');
+  const allSame = tracks.every(t => t[field].join(', ') === first);
+  return allSame ? first : '';
+}
+
+
+   // ========== 搜索功能 ==========
+// 根据搜索框内容过滤当前显示列表
+// query: 用户输入的搜索词
+function applySearch() {
+  const query = searchInput.value.trim().toLowerCase();
+
+  if (query === '') {
+    // 没有输入时，显示全部歌曲
+    tracks = allTracks;
+  } else {
+    // 只保留标题包含搜索词的歌
+    tracks = allTracks.filter(track =>
+      track.title.toLowerCase().includes(query)
+    );
+  }
+
+  // 过滤后重新渲染表格
+  renderTracks();
+}
 
    // ========== 4. 渲染函数 ==========
   function renderTracks() {
@@ -187,29 +225,6 @@ function setEditField(input, commonValue) {
   }
 }
 
-
-
-
-
-function getCommonString(tracks, field) {
-  if (tracks.length === 0) return '';
-  const first = tracks[0][field];
-  const allSame = tracks.every(t => t[field] === first);
-  return allSame ? first : '';
-}
-
-function getCommonArray(tracks, field) {
-  if (tracks.length === 0) return '';
-  const first = tracks[0][field].join(', ');
-  const allSame = tracks.every(t => t[field].join(', ') === first);
-  return allSame ? first : '';
-}
-
-
-
-
-
-
 // 关闭右侧编辑面板
 function closeEditPanel() {
   editPanel.classList.remove('open');
@@ -300,5 +315,6 @@ editArtist.addEventListener('input', () => editedFields.add('artist'));
 editAlbum.addEventListener('input', () => editedFields.add('album'));
 editGenre.addEventListener('input', () => editedFields.add('genre'));
 editComposer.addEventListener('input', () => editedFields.add('composer'));
+searchBtn.addEventListener('click', applySearch);
 
 
