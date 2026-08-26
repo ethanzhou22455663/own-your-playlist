@@ -250,6 +250,37 @@ function renderTracks() {
       tr.style.opacity = '1';      // 恢复不透明
     });
 
+    // 允许放置到这个元素上
+    tr.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    // 放下时重新排序
+    tr.addEventListener('drop', (e) => {
+      e.preventDefault();
+
+      // 没有拖拽对象，或者拖到自己身上，什么都不做
+      if (!draggedTrack || draggedTrack.id === track.id) return;
+
+      // 被拖的歌原来在 tracks 里的位置
+      const fromIndex = tracks.findIndex(t => t.id === draggedTrack.id);
+      // 目标位置：当前这行在 tracks 里的位置
+      const toIndex = index;
+
+      if (fromIndex === -1) return;
+
+      // 从原位置移除
+      const [moved] = tracks.splice(fromIndex, 1);
+      // 插入到目标位置
+      tracks.splice(toIndex, 0, moved);
+
+      // 重新渲染
+      selectedTracks = [];
+      renderTracks();
+    });
+
+    
+
 
 
     // 点击整行也切换选中
