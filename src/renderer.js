@@ -20,7 +20,11 @@
   const selectAllBox = document.getElementById('select-all-box');
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-btn');
-
+  const navSongs = document.getElementById('nav-songs');
+  const navAlbums = document.getElementById('nav-albums');
+  const albumListView = document.getElementById('album-list-view');
+  const albumlistBody = document.getElementById('albumlist-body');
+  const albumCount = document.getElementById('album-count');
 
   // ========== 2. 数据仓库 ==========
   // allTracks：扫描得到的完整歌曲列表（搜索时的“总仓库”）
@@ -67,7 +71,8 @@ function getCommonArray(tracks, field) {
 }
 
 
-   // ========== 搜索功能 ==========
+
+// ========== 搜索功能 ==========
 // 根据搜索框内容过滤当前显示列表
 // query: 用户输入的搜索词
 function applySearch() {
@@ -82,10 +87,81 @@ function applySearch() {
       track.title.toLowerCase().includes(query)
     );
   }
-
   // 过滤后重新渲染表格
   renderTracks();
 }
+
+
+
+
+// 从所有歌曲中汇总出专辑列表
+// 每个专辑只保留：name（专辑名）和 count（包含的歌曲数）
+function buildAlbums(tracks) {
+  const albums = [];
+
+  for (const track of tracks) {
+    const name = track.album || '未知专辑';
+
+    // 在 albums 数组里找是否已经存在同名专辑
+    const existing = albums.find(a => a.name === name);
+
+    if (existing) {
+      // 已存在，歌曲数 +1
+      existing.count += 1;
+    } else {
+      // 不存在，新增一个专辑
+      albums.push({ name, count: 1 });
+    }
+  }
+
+  return albums;
+}
+
+
+
+// 渲染专辑列表
+function renderAlbums() {
+  const albums = buildAlbums(allTracks);
+
+  // 清空旧内容
+  albumlistBody.innerHTML = '';
+
+  // 没有专辑时显示空提示
+  if (albums.length === 0) {
+    albumlistBody.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: center; color: var(--text-tertiary); padding: 40px;">
+          暂无专辑，请先扫描音乐文件夹
+        </td>
+      </tr>
+    `;
+    albumCount.textContent = '0 张专辑';
+    return;
+  }
+
+  // 逐个渲染专辑
+  for (const album of albums) {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td class="album-name">${album.name}</td>
+      <td class="album-count">${album.count} 首</td>
+      <td>
+        <div class="album-actions">
+          <button class="btn">重命名</button>
+          <button class="btn">删除</button>
+        </div>
+      </td>
+    `;
+
+    albumlistBody.appendChild(tr);
+  }
+
+  // 更新顶部"X 张专辑"
+  albumCount.textContent = `${albums.length} 张专辑`;
+}
+
+
 
    // ========== 4. 渲染函数 ==========
   function renderTracks() {
@@ -301,6 +377,27 @@ browsePathBtn.addEventListener('click', async () => {
     scanBtn.click(); // 自动触发扫描
   }
 });
+
+function switchView(view) {
+  switch (view) {
+    case 'albums':
+      albumListView.classList.add('active');
+      navAlbums.classList.add('active');
+      navSongs.classList.remove('active');
+      renderAlbums();   
+      break;
+    case 'songs':
+    default:
+      albumListView.classList.remove('active');
+      navSongs.classList.add('active');
+      navAlbums.classList.remove('active');
+      break;
+  }
+}
+
+
+navSongs.addEventListener('click', () => switchView('songs'));
+navAlbums.addEventListener('click', () => switchView('albums'));
 
 
 editBtn.addEventListener('click', openEditPanel);

@@ -3,7 +3,7 @@
 > This file lives in the project folder. It is updated by the teaching skill after every meaningful step.
 
 ## Last Updated
-2026-08-25
+2026-08-26
 
 ## Current Project
 Own Your Playlist — a desktop music tag editor. The app lets the user scan a local music folder, select multiple MP3 files, and batch-edit their metadata (title, artist, album, genre, composer) through a graphical interface.
@@ -29,6 +29,13 @@ Each step must be fully explained and confirmed before moving on.
 - Project progress:
 - Needs review:
 -->
+
+### 2026-08-26 · Lesson 8: Album list view and delete confirmation dialog
+- Learned: How to add a second full-page view inside the same `index.html` using `display: none` / `display: flex` and an `.active` class; how to overlay a view on top of the main content with `position: absolute; inset: 0`; how to build a simple list table with per-row action buttons (rename / delete); how to create a confirmation dialog with an overlay, title, message, and cancel/confirm buttons; how to expose console-only entry points (`showAlbumList`, `hideAlbumList`, `showDeleteConfirm`, `hideDeleteConfirm`) for temporary testing; how to align table columns with header/toolbar padding using CSS variables.
+- Mastery: can implement with hints / can adapt existing CSS variables and components / still learning precise horizontal alignment and table layout details.
+- Black-boxed: Real data binding for the album list; actual file operations for create/rename/delete; event wiring for the sidebar navigation.
+- Project progress: `index.html` now contains a hidden album-list page (`#album-list-view`) with a "新建" button, search box, and a three-column table (album name / song count / actions); a hidden delete-confirmation dialog (`#delete-confirm-overlay`) is ready; console entry points allow opening/closing both; table alignment iterated to match header/toolbar left edge.
+- Needs review: CSS `padding` shorthand vs individual properties; `position: absolute` + `inset` overlay behavior; centering flex children; when to use `display: none` vs visibility/opacity for view switching.
 
 ### 2026-08-25 · Lesson 7: Integrating prototype UI and rendering real tracks
 - Learned: How to integrate a standalone `prototype.html` design into the real Electron `index.html`; how to pass arguments through IPC (renderer → preload → main process); why `_event` is prefixed with `_` when unused; how to use `folderPath || './music'` for default values; why `filePath` is a good unique ID for scanned tracks; why the `#` column should show list position (`index + 1`) instead of embedded `trackNumber`; how to format `durationSec` into `m:ss` with `padStart`; how to format `genre` arrays with `join` for display; that Electron supports Windows/macOS/Linux but not iOS/iPadOS; how `npm run electron` maps to `electron .`; the difference between `__dirname` (file directory) and `app.getAppPath()` (app root directory).
